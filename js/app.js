@@ -234,7 +234,7 @@ function inicio() {
     <section class="card stack">
       <h2>Para hoy</h2>
       <button class="btn block" data-act="tab" data-v="regalos" data-sub="regalos:other">🎁 ${wishesOther} deseos de ${esc(NAMES[S.other])}</button>
-      ${unlocked("aventuras") ? `<button class="btn block" data-act="tab" data-v="mas" data-sub="mas:aventuras">💘 ${matches} ${matches === 1 ? "match de plan" : "matches de planes"}</button>` : ""}
+      ${unlocked("aventuras") ? `<button class="btn block" data-act="tab" data-v="mas" data-sub="mas:aventuras">🎯 ${matches} ${matches === 1 ? "match de plan" : "matches de planes"}</button>` : ""}
       <button class="btn block" data-act="tab" data-v="planes">🍽️ ${toGo} planes por ir</button>
       <button class="btn block" data-act="tab" data-v="sorpresas">💌 ${opened} ${opened === 1 ? "carta abierta" : "cartas abiertas"} para ti</button>
       ${pending ? `<button class="btn block" data-act="tab" data-v="mas" data-sub="mas:propuestas">⭐ ${pending} ${pending === 1 ? "propuesta" : "propuestas"} esperan tu voto</button>` : ""}
@@ -362,7 +362,7 @@ function propuestas() {
       else if (mine) state = `<span class="tag">Votaste. Falta el voto de ${esc(NAMES[S.other])}</span>`;
       return `<section class="card"><h3>${f.icon} ${esc(f.q || f.title)}</h3><p class="muted" style="margin:4px 0 10px">${esc(f.desc)}</p>
         <div class="row">${state}
-          <button class="btn small ${mine === "yes" ? "primary" : ""}" data-act="vote" data-id="${f.id}" data-v="yes">Sí 💚</button>
+          <button class="btn small ${mine === "yes" ? "primary" : ""}" data-act="vote" data-id="${f.id}" data-v="yes">Sí ✅</button>
           <button class="btn small ${mine === "no" ? "primary" : ""}" data-act="vote" data-id="${f.id}" data-v="no">Mejor no</button>
           ${yes && f.tab ? `<button class="btn small gold" data-act="sub" data-key="mas" data-v="${f.tab}">Abrir →</button>` : ""}</div></section>`;
     }).join("");
@@ -385,14 +385,14 @@ const advState = (a) => { const v = D.proposals[a.id]?.votes || {}; return v.fer
 function advCard(a) {
   const doc_ = D.proposals[a.id] || {}, v = doc_.votes || {}, mine = v[S.me], st = advState(a);
   let state = "";
-  if (st === "match") state = `<span class="tag ok">💘 ¡Match!</span>${doc_.done ? `<span class="tag ok">✓ Hecho</span>` : ""}${doc_.date ? `<span class="tag">📅 ${fmtDate(parseDay(doc_.date))}</span>` : ""}`;
+  if (st === "match") state = `<span class="tag ok">🎯 ¡Match!</span>${doc_.done ? `<span class="tag ok">✓ Hecho</span>` : ""}${doc_.date ? `<span class="tag">📅 ${fmtDate(parseDay(doc_.date))}</span>` : ""}`;
   else if (st === "no") state = `<span class="tag red">Esta vez no</span>`;
   else if (st === "wait") state = `<span class="tag">Votaste · falta ${esc(NAMES[S.other])}</span>`;
   return `<section class="card ${st === "match" ? "match" : ""}"><h3>${a.icon} ${esc(a.title)}</h3>
     ${state ? `<div class="row" style="margin-top:6px">${state}</div>` : ""}
     ${st === "match" ? `<p class="muted" style="margin-top:6px">🗓️ ${["fer", "mafer"].map((w) => `${esc(NAMES[w])}: ${sugText(doc_.suggest?.[w])}`).join(" · ")}</p>` : (mine === "yes" ? `<p class="muted" style="margin-top:6px">🗓️ Tu sugerencia: ${sugText(doc_.suggest?.[S.me])}</p>` : "")}
     <div class="actions">
-      <button class="btn small ${mine === "yes" ? "primary" : ""}" data-act="adv-yes" data-id="${a.id}">💚 Me animo</button>
+      <button class="btn small ${mine === "yes" ? "primary" : ""}" data-act="adv-yes" data-id="${a.id}">✅ Me animo</button>
       <button class="btn small ${mine === "no" ? "primary" : ""}" data-act="vote" data-id="${a.id}" data-v="no">🙅 Mejor no</button>
       ${st === "match" ? `<button class="btn small" data-act="adv-date" data-id="${a.id}">📅 Fecha</button><button class="btn small ${doc_.done ? "" : "gold"}" data-act="adv-done" data-id="${a.id}">${doc_.done ? "Desmarcar" : "✓ Hecho"}</button>` : ""}
     </div></section>`;
@@ -404,7 +404,7 @@ function aventuras() {
   return `<section class="card"><div class="row between"><h2>Aventuras 🗺️</h2><button class="btn primary small" data-act="adv-add">+ Proponer</button></div>
       <p class="muted">Cuando los dos dicen “me animo”, es un match de plan. Nadie ve el voto del otro hasta que ambos votan.</p>
       ${g.match.length ? `<button class="btn gold block" data-act="adv-roulette" style="margin-top:10px">🎲 Ruleta de planes</button>` : ""}</section>
-    ${sec("💘 Match de planes", g.match)}${sec("Tu turno", g.todo)}${sec("Esperando", g.wait)}${sec("Esta vez no", g.no)}`;
+    ${sec("🎯 Match de planes", g.match)}${sec("Tu turno", g.todo)}${sec("Esperando", g.wait)}${sec("Esta vez no", g.no)}`;
 }
 
 /* ── Juegos ── */
@@ -421,9 +421,9 @@ function eoa() {
     const btn = (n, l) => `<button class="btn ${m && m.pick === n ? "primary" : ""}" style="flex:1" data-act="eoa" data-i="${i}" data-n="${n}">${esc(l)}</button>`;
     return `<section class="card"><div class="row" style="flex-wrap:nowrap">${btn(0, a)}<span class="muted">o</span>${btn(1, b)}</div>
       ${m && !t ? `<p class="muted" style="margin-top:8px">Esperando a ${esc(NAMES[S.other])}…</p>` : ""}
-      ${done ? `<p style="margin-top:8px" class="${m.pick === t.pick ? "" : "muted"}">${m.pick === t.pick ? "💘 ¡Coincidieron!" : `${esc(NAMES[S.other])} eligió: ${esc([a, b][t.pick])}`}</p>` : ""}</section>`;
+      ${done ? `<p style="margin-top:8px" class="${m.pick === t.pick ? "" : "muted"}">${m.pick === t.pick ? "🎯 ¡Coincidieron!" : `${esc(NAMES[S.other])} eligió: ${esc([a, b][t.pick])}`}</p>` : ""}</section>`;
   }).join("");
-  return `<section class="card"><h2>Esto o aquello</h2><p class="muted">${both ? `Coinciden en ${match} de ${both} 💘` : "Elige rápido, sin pensar mucho."}</p></section>${cards}`;
+  return `<section class="card"><h2>Esto o aquello</h2><p class="muted">${both ? `Coinciden en ${match} de ${both} 🎯` : "Elige rápido, sin pensar mucho."}</p></section>${cards}`;
 }
 function quiz() {
   let ok = 0, tot = 0;
