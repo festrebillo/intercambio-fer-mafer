@@ -159,3 +159,16 @@ dialog::backdrop { background: rgba(0,0,0,.6); }
 code { background: rgba(0,0,0,.35); padding: 1px 6px; border-radius: 6px; font-size: .9em; }
 
 @media (min-width: 560px) { .hero h1 { font-size: 2.4rem; } }
+
+/* Segmentos y chips desplazables */
+.seg { overflow-x: auto; scrollbar-width: none; }
+.seg::-webkit-scrollbar { display: none; }
+.seg button { flex: 1 0 auto; padding: 0 14px; white-space: nowrap; }
+.chips { overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { white-space: nowrap; }
+.card.match { border-color: var(--gold); box-shadow: 0 0 0 1px rgba(240,195,106,.35), 0 8px 24px rgba(0,0,0,.25); }
+.sec { font-size: 1.15rem; color: var(--gold); margin: 18px 2px 8px; }
+.bingo { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+.bingo button { aspect-ratio: 1; border: 1px solid var(--line); background: rgba(0,0,0,.25); border-radius: 12px; font-size: .7rem; font-weight: 800; line-height: 1.2; padding: 4px; color: var(--cream); }
+.bingo button.on { background: var(--red); border-color: var(--red2); }

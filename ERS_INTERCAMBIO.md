@@ -21,3 +21,4 @@ HTML/CSS/JS sin build, GitHub Pages (repo `festrebillo/intercambio-fer-mafer`), 
 
 ## Historial
 - v0.1.0 (2026-11-18): primera versión completa de RF1–RF8 (propuestas solo votación).
+- v0.2.0 (2026-11-18): sin presupuesto ni precio; Propuestas con invitaciones Aventuras (match de planes) y Juegos (esto o aquello, quiz, cápsula, cupones, bingo).

@@ -40,13 +40,41 @@ const QUESTIONS = [
   "¿Una cosa pequeña que te haga feliz en un día cualquiera?",
 ];
 const FEATURES = [
+  { id: "aventuras", icon: "🗺️", q: "¿Te gustaría hacer más planes y no solo quedarnos en Navidad?", title: "Aventuras", desc: "Una lista de planes y salidas para votar. Si los dos dicen que sí, ¡es un match de plan!", tab: "aventuras" },
+  { id: "juegos", icon: "🎮", q: "¿Quieres jugar?", title: "Juegos y retos", desc: "Esto o aquello, un quiz, cápsula del tiempo, cupones y bingo navideño.", tab: "juegos" },
   { id: "adviento", icon: "🎄", title: "Calendario de adviento", desc: "Una pequeña sorpresa, recuerdo o mensaje para cada día de diciembre." },
   { id: "galeria", icon: "📸", title: "Galería y línea de tiempo", desc: "Fotos de los dos y las fechas que han compartido, en una línea de tiempo." },
 ];
+const ADV = [
+  ["cuatrimotos", "🏍️", "Cuatrimotos"], ["parapente", "🪂", "Parapente"], ["karting", "🏎️", "Karting"], ["paintball", "🎯", "Paintball"],
+  ["escalada", "🧗", "Escalada"], ["kayak", "🛶", "Kayak"], ["tirolesa", "🌲", "Tirolesa"], ["caballos", "🐎", "Paseo a caballo"],
+  ["cena", "🍷", "Ir a cenar (elegantes)"], ["cine", "🎬", "Noche de cine"], ["picnic", "🌅", "Picnic al atardecer"], ["patinaje", "⛸️", "Patinaje"],
+  ["parque", "🎡", "Parque de diversiones"], ["show", "🎤", "Concierto o show"], ["spa", "💆", "Spa o masajes"], ["luces", "✨", "Ver las luces de la ciudad"],
+  ["baile", "💃", "Salir a bailar"], ["libreria", "📚", "Café y librería"],
+];
+const EOA = [
+  ["Playa", "Montaña"], ["Café", "Chocolate caliente"], ["Pizza", "Sushi"], ["Peli en casa", "Cine"], ["Madrugar", "Trasnochar"],
+  ["Dulce", "Salado"], ["Verano", "Invierno"], ["Perros", "Gatos"], ["Viajar", "Quedarnos en casa"], ["Bailar", "Karaoke"],
+  ["Fotos", "Videos"], ["Mensajes", "Llamadas"], ["Panetón", "Chocolatada"], ["Aventura", "Relax"], ["Planear todo", "Improvisar"],
+  ["Música en vivo", "Playlist en casa"], ["Luces de Navidad", "Fuegos artificiales"], ["Cena elegante", "Parrilla informal"],
+];
+const QUIZ = [
+  ["Una noche tranquila ideal es…", ["Peli y manta", "Salir a cenar", "Series o videojuegos", "Dormir temprano"]],
+  ["Lo que más energía me da…", ["La música", "La naturaleza", "El deporte", "Estar con amigos"]],
+  ["Mi postre favorito…", ["Helado", "Torta de chocolate", "Frutas", "No soy de postres"]],
+  ["Mi viaje ideal…", ["Playa", "Ciudad", "Montaña y aventura", "Un pueblo tranquilo"]],
+  ["Lo que más valoro en un regalo…", ["Que sea útil", "Que sea sorpresa", "Que tenga significado", "Que sea un detalle especial"]],
+  ["Para mi cumpleaños prefiero…", ["Fiesta grande", "Cena íntima", "Un viaje", "Tranquilo en casa"]],
+  ["Lo que me pone de buen humor en la mañana…", ["Un café", "Música", "Dormir más", "Un desayuno rico"]],
+  ["El detalle que más me conquista…", ["Un mensaje bonito", "Un abrazo", "Un regalo", "Tiempo juntos"]],
+  ["Mi mayor miedo en una aventura…", ["Las alturas", "La velocidad", "El agua", "Ninguno"]],
+  ["Mis películas favoritas…", ["Comedia", "Romance", "Acción", "Terror"]],
+];
+const BINGO = ["Tomar chocolatada", "Ver las luces de la ciudad", "Escuchar un villancico", "Ver una peli navideña", "Armar el árbol", "Tomarnos una foto navideña", "Hacer galletas", "Una cena rica", "Brindar", "Usar un gorro de Papá Noel", "Mandar un mensaje bonito", "Bailar una canción", "Probar panetón", "Cantar un villancico", "Pedir un deseo", "Un abrazo bien largo"];
 
 /* ───────── estado ───────── */
 const configured = firebaseConfig.apiKey !== "PEGAR_AQUI";
-const S = { user: null, me: null, other: null, tab: "inicio", sub: { regalos: "mine", sorpresas: "cartas", mas: "playlist" }, placeFilter: "todos", error: "" };
+const S = { user: null, me: null, other: null, tab: "inicio", sub: { regalos: "mine", sorpresas: "cartas", mas: "playlist", juego: "eoa" }, placeFilter: "todos", error: "" };
 const D = { config: {}, wishes: [], purchases: [], places: [], lettersA: [], lettersB: [], clues: [], playlist: [], qa: [], proposals: {} };
 let db, auth, unsubs = [], lettersTimer;
 
@@ -193,7 +221,8 @@ function inicio() {
   const mine = (D.config.exchangeDate) ? fmtDate(parseDay(D.config.exchangeDate)) : "";
   const wishesOther = D.wishes.filter((w) => w.owner === S.other && w.kind === "want").length;
   const toGo = D.places.filter((p) => p.status === "porir").length;
-  const opened = D.lettersB.filter((l) => l.to === S.me).length;
+  const opened = D.lettersB.filter((l) => l.to === S.me && !l.capsule).length;
+  const matches = unlocked("aventuras") ? advAll().filter((a) => advState(a) === "match" && !D.proposals[a.id]?.done).length : 0;
   const pending = FEATURES.filter((f) => !((D.proposals[f.id]?.votes || {})[S.me])).length;
   return `
     <section class="card hero">
@@ -205,6 +234,7 @@ function inicio() {
     <section class="card stack">
       <h2>Para hoy</h2>
       <button class="btn block" data-act="tab" data-v="regalos" data-sub="regalos:other">🎁 ${wishesOther} deseos de ${esc(NAMES[S.other])}</button>
+      ${unlocked("aventuras") ? `<button class="btn block" data-act="tab" data-v="mas" data-sub="mas:aventuras">💘 ${matches} ${matches === 1 ? "match de plan" : "matches de planes"}</button>` : ""}
       <button class="btn block" data-act="tab" data-v="planes">🍽️ ${toGo} planes por ir</button>
       <button class="btn block" data-act="tab" data-v="sorpresas">💌 ${opened} ${opened === 1 ? "carta abierta" : "cartas abiertas"} para ti</button>
       ${pending ? `<button class="btn block" data-act="tab" data-v="mas" data-sub="mas:propuestas">⭐ ${pending} ${pending === 1 ? "propuesta" : "propuestas"} esperan tu voto</button>` : ""}
@@ -276,8 +306,8 @@ function sorpresas() {
   return seg("sorpresas", [["cartas", "💌 Cartas secretas"], ["adivina", "🕵️ Adivina el regalo"]]) + (S.sub.sorpresas === "cartas" ? cartas() : adivina());
 }
 function cartas() {
-  const inbox = D.lettersB.filter((l) => l.to === S.me).sort((a, b) => b.unlockAt.toMillis() - a.unlockAt.toMillis());
-  const sent = [...D.lettersA].sort((a, b) => a.unlockAt.toMillis() - b.unlockAt.toMillis());
+  const inbox = D.lettersB.filter((l) => l.to === S.me && !l.capsule).sort((a, b) => b.unlockAt.toMillis() - a.unlockAt.toMillis());
+  const sent = D.lettersA.filter((l) => !l.capsule).sort((a, b) => a.unlockAt.toMillis() - b.unlockAt.toMillis());
   return `<section class="card"><div class="row between"><h2>Para ti</h2></div>
       <p class="muted" style="margin-bottom:10px">Las cartas se abren solas en la fecha que eligió quien las escribió.</p>
       ${inbox.length ? inbox.map((l) => `<div class="envelope" style="margin-bottom:10px"><div class="eyebrow">💌 De ${esc(NAMES[l.from])} · ${fmtDate(l.unlockAt.toDate())}</div><p style="margin-top:6px">${esc(l.text)}</p></div>`).join("") : `<p class="empty">Aún no hay cartas abiertas para ti. ¡Paciencia! 🎅</p>`}</section>
@@ -285,7 +315,7 @@ function cartas() {
       ${sent.length ? sent.map((l) => { const open = l.unlockAt.toMillis() <= Date.now(); return `<div class="item"><div class="row between"><span class="tag ${open ? "ok" : "red"}">${open ? "Ya abierta" : "🔒 Se abre el " + fmtDate(l.unlockAt.toDate())}</span><button class="btn small danger" data-act="letter-del" data-id="${l.id}">Borrar</button></div><p class="muted" style="margin-top:6px;white-space:pre-wrap">${esc(l.text)}</p></div>`; }).join("") : `<p class="empty">Escribe una carta para ${esc(NAMES[S.other])}.</p>`}</section>`;
 }
 function adivina() {
-  const toMe = D.clues.filter((c) => c.to === S.me), byMe = D.clues.filter((c) => c.from === S.me);
+  const toMe = D.clues.filter((c) => c.to === S.me && !c.type), byMe = D.clues.filter((c) => c.from === S.me && !c.type);
   const clueList = (c) => c.clues.map((t, i) => `<div class="clue"><b>Pista ${i + 1}:</b> ${esc(t)}</div>`).join("");
   return `<section class="card"><h2>Para adivinar</h2>
       ${toMe.length ? toMe.map((c) => `<div class="item">${clueList(c)}
@@ -299,8 +329,13 @@ function adivina() {
 }
 
 /* ── Más ── */
+const unlocked = (id) => { const v = D.proposals[id]?.votes || {}; return v.fer === "yes" && v.mafer === "yes"; };
 function mas() {
-  return seg("mas", [["playlist", "🎵 Playlist"], ["retos", "💬 Retos"], ["propuestas", "⭐ Propuestas"]]) + { playlist, retos, propuestas }[S.sub.mas]();
+  const items = [["playlist", "🎵 Playlist"], ["retos", "💬 Retos"], ["propuestas", "⭐ Propuestas"]];
+  if (unlocked("aventuras")) items.push(["aventuras", "🗺️ Aventuras"]);
+  if (unlocked("juegos")) items.push(["juegos", "🎮 Juegos"]);
+  if (!items.some(([k]) => k === S.sub.mas)) S.sub.mas = "propuestas";
+  return seg("mas", items) + { playlist, retos, propuestas, aventuras, juegos }[S.sub.mas]();
 }
 function playlist() {
   return `<section class="card"><div class="row between"><h2>Playlist navideña</h2><button class="btn primary small" data-act="song-add">+ Canción</button></div>
@@ -321,15 +356,104 @@ function retos() {
 function propuestas() {
   return `<section class="card"><h2>Propuestas</h2></section>` +
     FEATURES.map((f) => {
-      const votes = D.proposals[f.id]?.votes || {}, mine = votes[S.me], both = votes.fer && votes.mafer;
+      const votes = D.proposals[f.id]?.votes || {}, mine = votes[S.me], both = votes.fer && votes.mafer, yes = both && votes.fer === "yes" && votes.mafer === "yes";
       let state = "";
-      if (both) state = votes.fer === "yes" && votes.mafer === "yes" ? `<span class="tag ok">🎉 ¡Aprobado por los dos!</span>` : `<span class="tag red">Por ahora no</span>`;
+      if (both) state = yes ? `<span class="tag ok">🎉 ¡Aprobado por los dos!</span>` : `<span class="tag red">Por ahora no</span>`;
       else if (mine) state = `<span class="tag">Votaste. Falta el voto de ${esc(NAMES[S.other])}</span>`;
-      return `<section class="card"><h3>${f.icon} ${esc(f.title)}</h3><p class="muted" style="margin:4px 0 10px">${esc(f.desc)}</p>
+      return `<section class="card"><h3>${f.icon} ${esc(f.q || f.title)}</h3><p class="muted" style="margin:4px 0 10px">${esc(f.desc)}</p>
         <div class="row">${state}
-          <button class="btn small ${mine === "yes" ? "primary" : ""}" data-act="vote" data-id="${f.id}" data-v="yes">Sí, me gusta</button>
-          <button class="btn small ${mine === "no" ? "primary" : ""}" data-act="vote" data-id="${f.id}" data-v="no">Mejor no</button></div></section>`;
+          <button class="btn small ${mine === "yes" ? "primary" : ""}" data-act="vote" data-id="${f.id}" data-v="yes">Sí 💚</button>
+          <button class="btn small ${mine === "no" ? "primary" : ""}" data-act="vote" data-id="${f.id}" data-v="no">Mejor no</button>
+          ${yes && f.tab ? `<button class="btn small gold" data-act="sub" data-key="mas" data-v="${f.tab}">Abrir →</button>` : ""}</div></section>`;
     }).join("");
+}
+
+/* ── Aventuras (match de planes) ── */
+const advAll = () => [
+  ...ADV.map(([id, icon, title]) => ({ id: "adv_" + id, icon, title })),
+  ...Object.values(D.proposals).filter((p) => p.kind === "adv").map((p) => ({ id: p.id, icon: "✨", title: p.title })),
+];
+const advState = (a) => { const v = D.proposals[a.id]?.votes || {}; return v.fer && v.mafer ? (v.fer === "yes" && v.mafer === "yes" ? "match" : "no") : (v[S.me] ? "wait" : "todo"); };
+function advCard(a) {
+  const doc_ = D.proposals[a.id] || {}, v = doc_.votes || {}, mine = v[S.me], st = advState(a);
+  let state = "";
+  if (st === "match") state = `<span class="tag ok">💘 ¡Match!</span>${doc_.done ? `<span class="tag ok">✓ Hecho</span>` : ""}${doc_.date ? `<span class="tag">📅 ${fmtDate(parseDay(doc_.date))}</span>` : ""}`;
+  else if (st === "no") state = `<span class="tag red">Esta vez no</span>`;
+  else if (st === "wait") state = `<span class="tag">Votaste · falta ${esc(NAMES[S.other])}</span>`;
+  return `<section class="card ${st === "match" ? "match" : ""}"><h3>${a.icon} ${esc(a.title)}</h3>
+    ${state ? `<div class="row" style="margin-top:6px">${state}</div>` : ""}
+    <div class="actions">
+      <button class="btn small ${mine === "yes" ? "primary" : ""}" data-act="vote" data-id="${a.id}" data-v="yes">💚 Me animo</button>
+      <button class="btn small ${mine === "no" ? "primary" : ""}" data-act="vote" data-id="${a.id}" data-v="no">🙅 Mejor no</button>
+      ${st === "match" ? `<button class="btn small" data-act="adv-date" data-id="${a.id}">📅 Fecha</button><button class="btn small ${doc_.done ? "" : "gold"}" data-act="adv-done" data-id="${a.id}">${doc_.done ? "Desmarcar" : "✓ Hecho"}</button>` : ""}
+    </div></section>`;
+}
+function aventuras() {
+  const g = { match: [], todo: [], wait: [], no: [] };
+  advAll().forEach((a) => g[advState(a)].push(a));
+  const sec = (t, l) => l.length ? `<h3 class="sec">${t} · ${l.length}</h3>${l.map(advCard).join("")}` : "";
+  return `<section class="card"><div class="row between"><h2>Aventuras 🗺️</h2><button class="btn primary small" data-act="adv-add">+ Proponer</button></div>
+      <p class="muted">Cuando los dos dicen “me animo”, es un match de plan. Nadie ve el voto del otro hasta que ambos votan.</p>
+      ${g.match.length ? `<button class="btn gold block" data-act="adv-roulette" style="margin-top:10px">🎲 Ruleta de planes</button>` : ""}</section>
+    ${sec("💘 Match de planes", g.match)}${sec("Tu turno", g.todo)}${sec("Esperando", g.wait)}${sec("Esta vez no", g.no)}`;
+}
+
+/* ── Juegos ── */
+function juegos() {
+  const subs = [["eoa", "Esto o aquello"], ["quiz", "Quiz"], ["capsula", "Cápsula"], ["cupones", "Cupones"], ["bingo", "Bingo"]];
+  return `<div class="chips">${subs.map(([k, l]) => `<button class="chip ${S.sub.juego === k ? "on" : ""}" data-act="sub" data-key="juego" data-v="${k}">${l}</button>`).join("")}</div>` + { eoa, quiz, capsula, cupones, bingo }[S.sub.juego]();
+}
+const qaGet = (id) => D.qa.find((a) => a.id === id);
+function eoa() {
+  let both = 0, match = 0;
+  const cards = EOA.map(([a, b], i) => {
+    const m = qaGet(`eoa_${i}_${S.me}`), t = qaGet(`eoa_${i}_${S.other}`), done = m && t;
+    if (done) { both++; if (m.pick === t.pick) match++; }
+    const btn = (n, l) => `<button class="btn ${m && m.pick === n ? "primary" : ""}" style="flex:1" data-act="eoa" data-i="${i}" data-n="${n}">${esc(l)}</button>`;
+    return `<section class="card"><div class="row" style="flex-wrap:nowrap">${btn(0, a)}<span class="muted">o</span>${btn(1, b)}</div>
+      ${m && !t ? `<p class="muted" style="margin-top:8px">Esperando a ${esc(NAMES[S.other])}…</p>` : ""}
+      ${done ? `<p style="margin-top:8px" class="${m.pick === t.pick ? "" : "muted"}">${m.pick === t.pick ? "💘 ¡Coincidieron!" : `${esc(NAMES[S.other])} eligió: ${esc([a, b][t.pick])}`}</p>` : ""}</section>`;
+  }).join("");
+  return `<section class="card"><h2>Esto o aquello</h2><p class="muted">${both ? `Coinciden en ${match} de ${both} 💘` : "Elige rápido, sin pensar mucho."}</p></section>${cards}`;
+}
+function quiz() {
+  let ok = 0, tot = 0;
+  const cards = QUIZ.map(([q, opts], i) => {
+    const m = qaGet(`quiz_${i}_${S.me}`), t = qaGet(`quiz_${i}_${S.other}`);
+    let body = "";
+    if (m && t) { tot++; const hit = m.guess === t.own; if (hit) ok++; body = `<div class="clue"><b>${esc(NAMES[S.other])}:</b> ${esc(opts[t.own])}</div><p style="margin-top:6px">${hit ? "✅ ¡Acertaste!" : `❌ Pensaste: ${esc(opts[m.guess])}`}</p>`; }
+    else if (m) body = `<p class="muted">Esperando a ${esc(NAMES[S.other])}…</p>`;
+    else if (t) body = `<p class="muted">${esc(NAMES[S.other])} ya respondió. ¡Tu turno! 👀</p>`;
+    return `<section class="card"><h3>${i + 1}. ${esc(q)}</h3>${body}<div class="actions"><button class="btn small ${m ? "" : "gold"}" data-act="quiz" data-i="${i}">${m ? "Cambiar" : "Responder"}</button></div></section>`;
+  }).join("");
+  return `<section class="card"><h2>¿Quién conoce más a quién?</h2><p class="muted">${tot ? `Acertaste ${ok} de ${tot} 🎯` : `Responde sobre ti y adivina qué respondería ${esc(NAMES[S.other])}.`}</p></section>${cards}`;
+}
+function capsula() {
+  const mine = D.lettersA.filter((l) => l.capsule).sort((a, b) => a.unlockAt.toMillis() - b.unlockAt.toMillis());
+  return `<section class="card"><div class="row between"><h2>Cápsula del tiempo ⏳</h2><button class="btn primary small" data-act="capsule-add">+ Escribir</button></div>
+    <p class="muted">Escribe un mensaje para ti. Se muestra solo en la fecha que elijas.</p></section>` +
+    (mine.length ? mine.map((l) => {
+      const open = l.unlockAt.toMillis() <= Date.now(), d = l.unlockAt.toDate().toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" });
+      return `<section class="card"><span class="tag ${open ? "ok" : "red"}">${open ? "Abierta · " + d : "🔒 Se abre el " + d}</span>
+        ${open ? `<div class="envelope" style="margin-top:8px">${esc(l.text)}</div>` : `<p class="muted" style="margin-top:8px">Sellada. 🤫</p>`}
+        <div class="actions"><button class="btn small danger" data-act="letter-del" data-id="${l.id}">Borrar</button></div></section>`;
+    }).join("") : `<p class="empty">Aún no has sellado ninguna cápsula.</p>`);
+}
+function cupones() {
+  const toMe = D.clues.filter((c) => c.type === "coupon" && c.to === S.me), byMe = D.clues.filter((c) => c.type === "coupon" && c.from === S.me);
+  return `<section class="card"><h2>Para ti 🎟️</h2>
+      ${toMe.length ? toMe.map((c) => `<div class="item"><div class="row between"><span class="title">${esc(c.title)}</span>${c.redeemed ? `<span class="tag ok">Canjeado</span>` : `<button class="btn small gold" data-act="coupon-redeem" data-id="${c.id}">Canjear</button>`}</div></div>`).join("") : `<p class="empty">${esc(NAMES[S.other])} aún no te regala cupones.</p>`}</section>
+    <section class="card"><div class="row between"><h2>Los que regalas</h2><button class="btn primary small" data-act="coupon-add">+ Crear</button></div>
+      ${byMe.length ? byMe.map((c) => `<div class="item"><div class="row between"><span class="title">${esc(c.title)}</span><span class="row">${c.redeemed ? `<span class="tag ok">Canjeado</span>` : ""}<button class="btn small danger" data-act="clue-del" data-id="${c.id}">Borrar</button></span></div></div>`).join("") : `<p class="empty">Crea un cupón: “vale por un abrazo largo”, “una cena que tú elijas”…</p>`}</section>`;
+}
+function bingo() {
+  const done = new Set(D.proposals.bingo?.done || []);
+  const lines = [];
+  for (let i = 0; i < 4; i++) { lines.push([0, 1, 2, 3].map((k) => i * 4 + k), [0, 1, 2, 3].map((k) => k * 4 + i)); }
+  lines.push([0, 5, 10, 15], [3, 6, 9, 12]);
+  const won = lines.some((l) => l.every((x) => done.has(x)));
+  return `<section class="card"><h2>Bingo navideño 🎄</h2><p class="muted">${won ? "🎉 ¡BINGO! Completaron una línea." : "Marquen juntos lo que vayan haciendo. Una línea completa es bingo."} · ${done.size}/16</p></section>
+    <div class="bingo">${BINGO.map((t, i) => `<button class="${done.has(i) ? "on" : ""}" data-act="bingo" data-i="${i}" aria-pressed="${done.has(i)}">${esc(t)}</button>`).join("")}</div>`;
 }
 
 /* ───────── acciones ───────── */
@@ -411,6 +535,49 @@ const A = {
     const i = Number(el.dataset.i), cur = D.qa.find((a) => a.id === `${i}_${S.me}`);
     const r = await ask("Tu respuesta", [{ name: "t", label: QUESTIONS[i], type: "textarea", required: true }], { t: cur?.text || "" }, "Guardar");
     if (r) setDoc(doc(db, "qa", `${i}_${S.me}`), { who: S.me, q: i, text: r.t, updatedAt: serverTimestamp() });
+  },
+  "adv-add": async () => {
+    const r = await ask("Proponer un plan", [{ name: "t", label: "¿Qué plan se te ocurre?", required: true }], {}, "Proponer", "Tu voto queda como “me animo”.");
+    if (r) { await setDoc(doc(db, "proposals", "adv_c_" + Date.now()), { kind: "adv", title: r.t, addedBy: S.me, votes: { [S.me]: "yes" } }); toast("Plan propuesto ✨"); }
+  },
+  "adv-date": async (el) => {
+    const cur = D.proposals[el.dataset.id]?.date || "";
+    const r = await ask("¿Cuándo lo hacemos?", [{ name: "d", label: "Fecha", type: "date", required: true }], { d: cur });
+    if (r) await setDoc(doc(db, "proposals", el.dataset.id), { date: r.d }, { merge: true });
+  },
+  "adv-done": (el) => setDoc(doc(db, "proposals", el.dataset.id), { done: !D.proposals[el.dataset.id]?.done }, { merge: true }),
+  "adv-roulette": () => {
+    const pool = advAll().filter((a) => advState(a) === "match" && !D.proposals[a.id]?.done);
+    if (!pool.length) return toast("Ya hicieron todos los matches 🎉");
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    info("🎲 ¡Les toca…!", `<div class="envelope"><h3>${pick.icon} ${esc(pick.title)}</h3></div>`);
+  },
+  eoa: (el) => setDoc(doc(db, "qa", `eoa_${el.dataset.i}_${S.me}`), { who: S.me, pick: Number(el.dataset.n), updatedAt: serverTimestamp() }),
+  quiz: async (el) => {
+    const i = Number(el.dataset.i), [q, opts] = QUIZ[i], cur = qaGet(`quiz_${i}_${S.me}`);
+    const options = opts.map((o, k) => [k, o]);
+    const r = await ask(q, [
+      { name: "own", label: "Para ti, es…", type: "select", options },
+      { name: "guess", label: `Crees que para ${NAMES[S.other]} es…`, type: "select", options },
+    ], { own: cur?.own ?? 0, guess: cur?.guess ?? 0 }, "Guardar");
+    if (r) setDoc(doc(db, "qa", `quiz_${i}_${S.me}`), { who: S.me, own: Number(r.own), guess: Number(r.guess), updatedAt: serverTimestamp() });
+  },
+  "capsule-add": async () => {
+    const r = await ask("Cápsula del tiempo", [
+      { name: "text", label: "Mensaje para ti", type: "textarea", required: true },
+      { name: "date", label: "Se abre el…", type: "date", required: true, value: `${new Date().getFullYear() + 1}-12-24` },
+    ], {}, "Sellar", "Nadie la ve hasta esa fecha.");
+    if (r) { await addDoc(collection(db, "letters"), { from: S.me, to: S.me, capsule: true, text: r.text, unlockAt: Timestamp.fromDate(parseDay(r.date)), createdAt: serverTimestamp() }); toast("Cápsula sellada ⏳"); }
+  },
+  "coupon-add": async () => {
+    const r = await ask(`Cupón para ${NAMES[S.other]}`, [{ name: "t", label: "Vale por…", required: true, ph: "un abrazo largo, una cena que elijas…" }], {}, "Crear");
+    if (r) { await addDoc(collection(db, "clues"), { type: "coupon", from: S.me, to: S.other, title: r.t, redeemed: false, createdAt: serverTimestamp() }); toast("Cupón creado 🎟️"); }
+  },
+  "coupon-redeem": async (el) => { if (await ask("¿Canjear este cupón?", [], {}, "¡Canjear!")) updateDoc(doc(db, "clues", el.dataset.id), { redeemed: true }); },
+  bingo: (el) => {
+    const set = new Set(D.proposals.bingo?.done || []), i = Number(el.dataset.i);
+    set.has(i) ? set.delete(i) : set.add(i);
+    return setDoc(doc(db, "proposals", "bingo"), { done: [...set] }, { merge: true });
   },
   vote: (el) => { setDoc(doc(db, "proposals", el.dataset.id), { votes: { [S.me]: el.dataset.v } }, { merge: true }); toast("Voto guardado ✓"); },
 };
