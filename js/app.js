@@ -172,14 +172,6 @@ function render() {
 }
 
 const seg = (key, items) => `<div class="seg" role="tablist">${items.map(([k, l]) => `<button role="tab" data-act="sub" data-key="${key}" data-v="${k}" class="${S.sub[key] === k ? "on" : ""}">${l}</button>`).join("")}</div>`;
-const spent = () => D.purchases.reduce((a, p) => a + (Number(p.price) || 0), 0);
-const budgetBar = () => {
-  const cap = Number(D.config.budget) || 0, sp = spent();
-  const pct = cap ? Math.min(100, (sp / cap) * 100) : 0;
-  return `<div class="bar ${cap && sp > cap ? "over" : ""}"><i style="width:${pct}%"></i></div>
-    <div class="muted">${cap ? `Llevas ${money(sp)} de ${money(cap)}${sp > cap ? " — te pasaste 😅" : ""}` : `Llevas ${money(sp)} gastados. Aún no hay tope definido.`}</div>`;
-};
-
 /* ── Inicio ── */
 function countdownParts() {
   const ds = D.config.exchangeDate;
@@ -210,11 +202,6 @@ function inicio() {
       <div class="count" id="count"></div>
       <button class="btn gold" data-act="set-date">${mine ? `📅 ${esc(mine)} · cambiar` : "📅 Elegir fecha"}</button>
     </section>
-    <section class="card">
-      <div class="row between"><h2>Presupuesto</h2><button class="btn small" data-act="set-budget">Definir tope</button></div>
-      ${budgetBar()}
-      <p class="muted" style="margin-top:6px">Solo tú ves cuánto has gastado.</p>
-    </section>
     <section class="card stack">
       <h2>Para hoy</h2>
       <button class="btn block" data-act="tab" data-v="regalos" data-sub="regalos:other">🎁 ${wishesOther} deseos de ${esc(NAMES[S.other])}</button>
@@ -229,8 +216,8 @@ function wishCard(w, mineView) {
   const url = safeUrl(w.url);
   const purchase = D.purchases.find((p) => p.id === w.id);
   return `<div class="item">
-    <div class="row between"><span class="title">${url ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(w.title)}</a>` : esc(w.title)}</span>${w.price ? `<span class="price">${money(w.price)}</span>` : ""}</div>
-    <div class="row" style="margin-top:4px"><span class="tag">${PRIORITY[w.priority] || PRIORITY[2]}</span>${purchase ? `<span class="tag ok">✓ Ya lo compré${purchase.price ? " · " + money(purchase.price) : ""}</span>` : ""}</div>
+    <div class="row between"><span class="title">${url ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(w.title)}</a>` : esc(w.title)}</span></div>
+    <div class="row" style="margin-top:4px"><span class="tag">${PRIORITY[w.priority] || PRIORITY[2]}</span>${purchase ? `<span class="tag ok">✓ Ya lo compré</span>` : ""}</div>
     ${w.note ? `<p class="muted" style="margin-top:6px">${esc(w.note)}</p>` : ""}
     <div class="actions">
       ${mineView ? `<button class="btn small" data-act="wish-edit" data-id="${w.id}">Editar</button><button class="btn small danger" data-act="wish-del" data-id="${w.id}">Borrar</button>`
@@ -244,7 +231,6 @@ function regalos() {
   const want = list.filter((w) => w.kind === "want").sort((a, b) => (b.priority || 0) - (a.priority || 0));
   const avoid = list.filter((w) => w.kind === "avoid");
   return `${seg("regalos", [["mine", "Mis deseos"], ["other", `Deseos de ${esc(NAMES[S.other])}`]])}
-    ${!mineView ? `<section class="card"><h3>Tu presupuesto</h3>${budgetBar()}</section>` : ""}
     <section class="card">
       <div class="row between"><h2>${mineView ? "Lo que quiero" : `Lo que quiere ${esc(NAMES[S.other])}`}</h2>
         ${mineView ? `<button class="btn primary small" data-act="wish-add" data-kind="want">+ Agregar</button>` : ""}</div>
@@ -321,7 +307,7 @@ function playlist() {
     ${D.playlist.length ? [...D.playlist].sort((a, b) => (a.createdAt?.toMillis?.() || 0) - (b.createdAt?.toMillis?.() || 0)).map((s) => { const u = safeUrl(s.link); return `<div class="item"><div class="row between"><span class="title">🎵 ${u ? `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(s.title)}</a>` : esc(s.title)}</span>${s.addedBy === S.me ? `<button class="btn small danger" data-act="song-del" data-id="${s.id}">Quitar</button>` : `<span class="tag">${esc(NAMES[s.addedBy])}</span>`}</div></div>`; }).join("") : `<p class="empty">Agreguen sus villancicos y canciones favoritas.</p>`}</section>`;
 }
 function retos() {
-  return `<section class="card"><h2>Preguntas para conocernos</h2><p class="muted">La respuesta del otro se muestra cuando los dos hayan respondido.</p></section>` +
+  return `<section class="card"><h2>Quiero conocerte mejor 😊</h2><p class="muted">Verás la respuesta cuando el otro haya respondido.</p></section>` +
     QUESTIONS.map((q, i) => {
       const mine = D.qa.find((a) => a.id === `${i}_${S.me}`), theirs = D.qa.find((a) => a.id === `${i}_${S.other}`);
       return `<section class="card"><h3>${i + 1}. ${esc(q)}</h3>
@@ -333,7 +319,7 @@ function retos() {
     }).join("");
 }
 function propuestas() {
-  return `<section class="card"><h2>Propuestas</h2><p class="muted">Ideas extra para la app. Solo se activan si los dos votan que sí. Nadie ve el voto del otro, solo el resultado.</p></section>` +
+  return `<section class="card"><h2>Propuestas</h2></section>` +
     FEATURES.map((f) => {
       const votes = D.proposals[f.id]?.votes || {}, mine = votes[S.me], both = votes.fer && votes.mafer;
       let state = "";
@@ -365,10 +351,6 @@ const A = {
     const r = await ask("Fecha del intercambio", [{ name: "d", label: "¿Cuándo?", type: "date", required: true }], { d: D.config.exchangeDate || "" }, "Guardar", "Cualquiera de los dos puede cambiarla.");
     if (r) { await setDoc(doc(db, "config", "main"), { exchangeDate: r.d }, { merge: true }); toast("Fecha guardada 📅"); }
   },
-  "set-budget": async () => {
-    const r = await ask("Presupuesto máximo", [{ name: "b", label: "Tope por regalo (S/)", type: "number", required: true }], { b: D.config.budget || "" }, "Guardar", "El tope es compartido. El gasto de cada uno es privado.");
-    if (r) { await setDoc(doc(db, "config", "main"), { budget: Number(r.b) }, { merge: true }); toast("Tope guardado"); }
-  },
 
   "wish-add": (el) => wishForm(null, el.dataset.kind),
   "wish-edit": (el) => wishForm(D.wishes.find((w) => w.id === el.dataset.id)),
@@ -376,8 +358,8 @@ const A = {
   buy: async (el) => {
     const w = D.wishes.find((x) => x.id === el.dataset.id), has = D.purchases.find((p) => p.id === w.id);
     if (has) { await deleteDoc(doc(db, "purchases", w.id)); return toast("Listo, quitado"); }
-    const r = await ask("¿Cuánto costó?", [{ name: "p", label: "Precio (S/, opcional)", type: "number" }], { p: w.price || "" }, "Marcar comprado", `Así llevas tu presupuesto. ${NAMES[w.owner]} no verá esto.`);
-    if (r) { await setDoc(doc(db, "purchases", w.id), { buyer: S.me, wishId: w.id, price: Number(r.p) || 0, createdAt: serverTimestamp() }); toast("¡Anotado en secreto! 🤫"); }
+    await setDoc(doc(db, "purchases", w.id), { buyer: S.me, wishId: w.id, price: 0, createdAt: serverTimestamp() });
+    toast("¡Anotado en secreto! 🤫");
   },
 
   "place-add": () => placeForm(null),
@@ -438,12 +420,11 @@ async function wishForm(w, kind) {
   const fields = kind === "avoid"
     ? [{ name: "title", label: "¿Qué no quieres?", required: true }, { name: "note", label: "Nota (opcional)" }]
     : [{ name: "title", label: "¿Qué te gustaría?", required: true }, { name: "url", label: "Link (opcional)", type: "url", ph: "https://…" },
-      { name: "price", label: "Precio aprox. (S/)", type: "number" },
       { name: "priority", label: "Prioridad", type: "select", options: [[3, PRIORITY[3]], [2, PRIORITY[2]], [1, PRIORITY[1]]] },
       { name: "note", label: "Nota (talla, color…)", type: "textarea" }];
   const r = await ask(w ? "Editar deseo" : kind === "avoid" ? "No me regales…" : "Nuevo deseo", fields, w || { priority: 2 });
   if (!r) return;
-  const data = { title: r.title, note: r.note || "", url: safeUrl(r.url || ""), price: Number(r.price) || 0, priority: Number(r.priority) || 2 };
+  const data = { title: r.title, note: r.note || "", url: safeUrl(r.url || ""), priority: Number(r.priority) || 2 };
   if (w) await updateDoc(doc(db, "wishes", w.id), data);
   else await addDoc(collection(db, "wishes"), { ...data, kind, owner: S.me, createdAt: serverTimestamp() });
   toast("Guardado 🎁");
