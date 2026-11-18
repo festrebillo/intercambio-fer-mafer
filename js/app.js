@@ -373,6 +373,14 @@ const advAll = () => [
   ...ADV.map(([id, icon, title]) => ({ id: "adv_" + id, icon, title })),
   ...Object.values(D.proposals).filter((p) => p.kind === "adv").map((p) => ({ id: p.id, icon: "✨", title: p.title })),
 ];
+const MONTHS = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+const sugText = (s) => s?.date ? esc(parseDay(s.date).toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" })) : s?.month ? esc(s.month) : "sin preferencia";
+const CONSENT = [
+  (t, n) => `${t} ${n}: al dar tu consentimiento aceptas realizar este plan con todas sus consecuencias, abrazos y selfies incluidos. No se aceptan devoluciones. 😏`,
+  (t, n) => `${t} ${n}, declaras estar en pleno uso de tus facultades. Cualquier excusa de último minuto será rechazada por el Comité Oficial de Planes. 📜`,
+  (t, n) => `Con este clic, ${t} ${n}, firmas ante notario imaginario. Si te rajas, debes un helado (de los grandes). 🍦`,
+  (t, n) => `Atención, ${t} ${n}: este “me animo” tiene valor legal en toda la república del cariño. Las caras de miedo no cuentan como cancelación. 😂`,
+];
 const advState = (a) => { const v = D.proposals[a.id]?.votes || {}; return v.fer && v.mafer ? (v.fer === "yes" && v.mafer === "yes" ? "match" : "no") : (v[S.me] ? "wait" : "todo"); };
 function advCard(a) {
   const doc_ = D.proposals[a.id] || {}, v = doc_.votes || {}, mine = v[S.me], st = advState(a);
@@ -382,8 +390,9 @@ function advCard(a) {
   else if (st === "wait") state = `<span class="tag">Votaste · falta ${esc(NAMES[S.other])}</span>`;
   return `<section class="card ${st === "match" ? "match" : ""}"><h3>${a.icon} ${esc(a.title)}</h3>
     ${state ? `<div class="row" style="margin-top:6px">${state}</div>` : ""}
+    ${st === "match" ? `<p class="muted" style="margin-top:6px">🗓️ ${["fer", "mafer"].map((w) => `${esc(NAMES[w])}: ${sugText(doc_.suggest?.[w])}`).join(" · ")}</p>` : (mine === "yes" ? `<p class="muted" style="margin-top:6px">🗓️ Tu sugerencia: ${sugText(doc_.suggest?.[S.me])}</p>` : "")}
     <div class="actions">
-      <button class="btn small ${mine === "yes" ? "primary" : ""}" data-act="vote" data-id="${a.id}" data-v="yes">💚 Me animo</button>
+      <button class="btn small ${mine === "yes" ? "primary" : ""}" data-act="adv-yes" data-id="${a.id}">💚 Me animo</button>
       <button class="btn small ${mine === "no" ? "primary" : ""}" data-act="vote" data-id="${a.id}" data-v="no">🙅 Mejor no</button>
       ${st === "match" ? `<button class="btn small" data-act="adv-date" data-id="${a.id}">📅 Fecha</button><button class="btn small ${doc_.done ? "" : "gold"}" data-act="adv-done" data-id="${a.id}">${doc_.done ? "Desmarcar" : "✓ Hecho"}</button>` : ""}
     </div></section>`;
@@ -539,6 +548,19 @@ const A = {
   "adv-add": async () => {
     const r = await ask("Proponer un plan", [{ name: "t", label: "¿Qué plan se te ocurre?", required: true }], {}, "Proponer", "Tu voto queda como “me animo”.");
     if (r) { await setDoc(doc(db, "proposals", "adv_c_" + Date.now()), { kind: "adv", title: r.t, addedBy: S.me, votes: { [S.me]: "yes" } }); toast("Plan propuesto ✨"); }
+  },
+  "adv-yes": async (el) => {
+    const id = el.dataset.id, a = advAll().find((x) => x.id === id);
+    const cur = D.proposals[id]?.suggest?.[S.me] || {};
+    const treat = S.me === "mafer" ? "Señorita" : "Señor";
+    const msg = CONSENT[Math.floor(Math.random() * CONSENT.length)](treat, NAMES[S.me]);
+    const r = await ask(`📜 Consentimiento oficial: ${a.title}`, [
+      { name: "month", label: "¿En qué mes te gustaría? (opcional)", type: "select", options: [["", "Sin preferencia"], ...MONTHS.map((m) => [m, m])] },
+      { name: "date", label: "O sugiere una fecha exacta (opcional)", type: "date" },
+    ], { month: cur.month || "", date: cur.date || "" }, "Acepto 🤝", msg);
+    if (!r) return;
+    await setDoc(doc(db, "proposals", id), { votes: { [S.me]: "yes" }, suggest: { [S.me]: { month: r.month || "", date: r.date || "" } } }, { merge: true });
+    toast("¡Firmado! 🖊️ No hay vuelta atrás 😈");
   },
   "adv-date": async (el) => {
     const cur = D.proposals[el.dataset.id]?.date || "";
