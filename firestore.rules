@@ -1,0 +1,72 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+    function email() { return request.auth.token.email; }
+    function allowed() {
+      return signedIn() && email() in [
+        'ferx.scry@gmail.com',
+        'fernandarosas251051@gmail.com'
+      ];
+    }
+    function who() {
+      return email() == 'ferx.scry@gmail.com' ? 'fer' : 'mafer';
+    }
+
+    // Fecha del intercambio y presupuesto
+    match /config/{id} {
+      allow read, write: if allowed();
+    }
+
+    // Lista de deseos: cada uno solo edita los suyos
+    match /wishes/{id} {
+      allow read: if allowed();
+      allow create: if allowed() && request.resource.data.owner == who();
+      allow update, delete: if allowed() && resource.data.owner == who();
+    }
+
+    // "Ya lo compré": solo lo ve quien compró (el dueño del deseo NO puede leerlo)
+    match /purchases/{id} {
+      allow read, update, delete: if allowed() && resource.data.buyer == who();
+      allow create: if allowed() && request.resource.data.buyer == who();
+    }
+
+    // Restaurantes y planes
+    match /places/{id} {
+      allow read, create, update: if allowed();
+      allow delete: if allowed() && resource.data.addedBy == who();
+    }
+
+    // Cartas secretas: la destinataria no puede leerlas hasta la fecha de apertura
+    match /letters/{id} {
+      allow read: if allowed() &&
+        (resource.data.from == who() || resource.data.unlockAt <= request.time);
+      allow create: if allowed() && request.resource.data.from == who();
+      allow update, delete: if allowed() && resource.data.from == who();
+    }
+
+    // Adivina el regalo
+    match /clues/{id} {
+      allow read, update: if allowed();
+      allow create: if allowed() && request.resource.data.from == who();
+      allow delete: if allowed() && resource.data.from == who();
+    }
+
+    // Playlist, retos y propuestas
+    match /playlist/{id} {
+      allow read, create: if allowed();
+      allow delete: if allowed() && resource.data.addedBy == who();
+    }
+    match /qa/{id} {
+      allow read: if allowed();
+      allow create, update: if allowed() && request.resource.data.who == who();
+      allow delete: if allowed() && resource.data.who == who();
+    }
+    match /proposals/{id} {
+      allow read, write: if allowed();
+    }
+  }
+}
