@@ -146,7 +146,7 @@ function renderRoot() {
   if (!S.user) {
     app.innerHTML = `<div class="center"><div class="login">
       <div class="big">🎁</div><h1>Intercambio Fer y Mafer</h1>
-      <p>Una app solo para ustedes dos. Entra con tu cuenta de Google.</p>
+      <div style="height:18px"></div>
       <button class="btn primary block" data-act="login">Entrar con Google</button>
       ${S.error ? `<p class="err">${esc(S.error)}</p>` : ""}
     </div></div>`;
